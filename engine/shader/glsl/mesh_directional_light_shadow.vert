@@ -1,9 +1,10 @@
 #version 310 es
 
+#extension GL_KHR_vulkan_glsl : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#include "constants.h"
-#include "structures.h"
+#include "../include/constants.h"
+#include "../include/structures.h"
 
 layout(set = 0, binding = 0) readonly buffer _unused_name_global_set_per_frame_binding_buffer
 {

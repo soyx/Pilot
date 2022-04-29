@@ -1,8 +1,9 @@
 #version 310 es
 
+#extension GL_KHR_vulkan_glsl : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#include "constants.h"
+#include "../include/constants.h"
 
 void main()
 {

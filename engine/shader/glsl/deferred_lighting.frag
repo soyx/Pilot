@@ -1,9 +1,10 @@
 #version 310 es
 
+#extension GL_KHR_vulkan_glsl : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#include "constants.h"
-#include "gbuffer.h"
+#include "../include/constants.h"
+#include "../include/gbuffer.h"
 
 struct DirectionalLight
 {
@@ -53,7 +54,7 @@ layout(set = 2, binding = 1) uniform samplerCube skybox_sampler;
 layout(location = 0) in highp vec2 in_texcoord;
 layout(location = 0) out highp vec4 out_color;
 
-#include "mesh_lighting.h"
+#include "../include/mesh_lighting.h"
 
 void main()
 {
@@ -90,7 +91,7 @@ void main()
     }
     else if (SHADINGMODELID_DEFAULT_LIT == gbuffer.shadingModelID)
     {
-#include "mesh_lighting.inl"
+#include "../include/mesh_lighting.inl"
     }
 
     out_color = vec4(result_color, 1.0f);
