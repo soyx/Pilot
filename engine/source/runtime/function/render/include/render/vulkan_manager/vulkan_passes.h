@@ -13,6 +13,20 @@ namespace Pilot
         VkImageView directional_light_shadow_color_image_view;
     };
 
+    class PScreenSpaceAntialiasingPass : public PRenderPassBase
+    {
+    public:
+        void initialize(VkRenderPass render_pass, VkImageView input_attachment);
+        void draw();
+
+        void updateAfterFramebufferRecreate(VkImageView input_attachment);
+
+    private:
+        void setupDescriptorSetLayout();
+        void setupPipelines();
+        void setupDescriptorSet();
+    };
+
     class PColorGradingPass : public PRenderPassBase
     {
     public:
