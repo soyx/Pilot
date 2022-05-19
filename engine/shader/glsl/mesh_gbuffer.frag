@@ -1,9 +1,10 @@
 #version 310 es
 
+#extension GL_KHR_vulkan_glsl : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#include "constants.h"
-#include "gbuffer.h"
+#include "../include/constants.h"
+#include "../include/gbuffer.h"
 
 layout(set = 2, binding = 0) uniform _unused_name_permaterial
 {
