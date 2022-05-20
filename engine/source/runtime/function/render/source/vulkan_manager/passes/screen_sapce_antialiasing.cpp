@@ -12,7 +12,7 @@ namespace Pilot
         setupDescriptorSetLayout();
         setupPipelines();
         setupDescriptorSet();
-        updateAfterFramebufferRecreate();
+        updateAfterFramebufferRecreate(input_attachment);
     }
     void PScreenSpaceAntialiasingPass::setupDescriptorSetLayout()
     {
