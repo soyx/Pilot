@@ -37,10 +37,10 @@ namespace Pilot
             sizeof(post_process_global_layout_bindings) / sizeof(post_process_global_layout_bindings[0]);
         post_process_global_layout_create_info.pBindings = post_process_global_layout_bindings;
 
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(m_p_vulkan_context->_device,
-                                                      &post_process_global_layout_create_info,
-                                                      nullptr,
-                                                      &_descriptor_infos[0].layout))
+        if (vkCreateDescriptorSetLayout(m_p_vulkan_context->_device,
+                                        &post_process_global_layout_create_info,
+                                        nullptr,
+                                        &_descriptor_infos[0].layout) != VK_SUCCESS)
         {
             throw std::runtime_error("create post process global layout error");
         }
@@ -186,7 +186,64 @@ namespace Pilot
         vkDestroyShaderModule(m_p_vulkan_context->_device, frag_shader_module, nullptr);
     }
 
-    void PScreenSpaceAntialiasingPass::draw() {}
-    void PScreenSpaceAntialiasingPass::updateAfterFramebufferRecreate(VkImageView input_attachment) {}
-    void PScreenSpaceAntialiasingPass::setupDescriptorSet() {}
+    void PScreenSpaceAntialiasingPass::setupDescriptorSet()
+    {
+        VkDescriptorSetAllocateInfo post_process_global_descriptor_set_alloc_info {};
+        post_process_global_descriptor_set_alloc_info.sType          = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        post_process_global_descriptor_set_alloc_info.pNext          = nullptr;
+        post_process_global_descriptor_set_alloc_info.descriptorPool = m_descriptor_pool;
+        post_process_global_descriptor_set_alloc_info.descriptorSetCount = 1;
+        post_process_global_descriptor_set_alloc_info.pSetLayouts        = &_descriptor_infos[0].layout;
+
+        if (vkAllocateDescriptorSets(m_p_vulkan_context->_device,
+                                     &post_process_global_descriptor_set_alloc_info,
+                                     &_descriptor_infos[0].descriptor_set) != VK_SUCCESS)
+        {
+            throw std::runtime_error("allocate post process global descriptor set");
+        }
+    }
+
+    void PScreenSpaceAntialiasingPass::updateAfterFramebufferRecreate(VkImageView input_attachment)
+    {
+        VkDescriptorImageInfo post_process_per_frame_input_attachment_info = {};
+        post_process_per_frame_input_attachment_info.sampler =
+            PVulkanUtil::getOrCreateNearestSampler(m_p_vulkan_context->_physical_device, m_p_vulkan_context->_device);
+        post_process_per_frame_input_attachment_info.imageView   = input_attachment;
+        post_process_per_frame_input_attachment_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        VkWriteDescriptorSet post_process_descriptor_writes_info[1];
+
+        VkWriteDescriptorSet& post_process_descriptor_input_attachment_write_info =
+            post_process_descriptor_writes_info[0];
+        post_process_descriptor_input_attachment_write_info.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        post_process_descriptor_input_attachment_write_info.pNext           = nullptr;
+        post_process_descriptor_input_attachment_write_info.dstSet          = _descriptor_infos[0].descriptor_set;
+        post_process_descriptor_input_attachment_write_info.dstBinding      = 0;
+        post_process_descriptor_input_attachment_write_info.dstArrayElement = 0;
+        post_process_descriptor_input_attachment_write_info.descriptorType  = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        post_process_descriptor_input_attachment_write_info.descriptorCount = 1;
+        post_process_descriptor_input_attachment_write_info.pImageInfo = &post_process_per_frame_input_attachment_info;
+
+        vkUpdateDescriptorSets(m_p_vulkan_context->_device,
+                               sizeof(post_process_descriptor_writes_info) /
+                                   sizeof(post_process_descriptor_writes_info[0]),
+                               post_process_descriptor_writes_info,
+                               0,
+                               nullptr);
+    }
+
+    void PScreenSpaceAntialiasingPass::draw()
+    {
+        if (m_render_config._enable_debug_untils_label)
+        {
+            VkDebugUtilsLabelEXT label_info = {
+                VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, nullptr, "FXAA", {1.0f, 1.0f, 1.0f, 1.0f}};
+            m_p_vulkan_context->_vkCmdBeginDebugUtilsLabelEXT(m_command_info._current_command_buffer, &label_info);
+        }
+
+        m_p_vulkan_context->_vkCmdBindPipeline(
+            m_command_info._current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _render_pipelines[0].pipeline);
+
+        m_p_vulkan_context->_vkCmdSetViewport(m_command_info._current_command_buffer, 0, 1, &m_command_info._viewport);
+    }
 } // namespace Pilot
