@@ -273,6 +273,27 @@ namespace Pilot
         color_grading_pass.preserveAttachmentCount = 0;
         color_grading_pass.pPreserveAttachments    = NULL;
 
+        VkAttachmentReference screen_space_antialiasing_pass_intput_attachment_reference {};
+        screen_space_antialiasing_pass_intput_attachment_reference.attachment =
+            &backup_even_color_attachment_description - attachments;
+        screen_space_antialiasing_pass_intput_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference screen_space_antialiasing_pass_color_attachment_reference {};
+        screen_space_antialiasing_pass_color_attachment_reference.attachment =
+            &backup_odd_color_attachment_description - attachments;
+        screen_space_antialiasing_pass_color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription& screen_space_antialiasing_pass =
+            subpasses[_main_camera_subpass_screen_space_antialiasing];
+        screen_space_antialiasing_pass.pipelineBindPoint     = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        screen_space_antialiasing_pass.inputAttachmentCount  = 1;
+        screen_space_antialiasing_pass.pInputAttachments = &screen_space_antialiasing_pass_intput_attachment_reference;
+        screen_space_antialiasing_pass.colorAttachmentCount  = 1;
+        screen_space_antialiasing_pass.pColorAttachments = &screen_space_antialiasing_pass_color_attachment_reference;
+        screen_space_antialiasing_pass.pDepthStencilAttachment = nullptr;
+        screen_space_antialiasing_pass.preserveAttachmentCount = 0;
+        screen_space_antialiasing_pass.pPreserveAttachments    = nullptr;
+
         VkAttachmentReference ui_pass_color_attachment_reference {};
         ui_pass_color_attachment_reference.attachment = &backup_even_color_attachment_description - attachments;
         ui_pass_color_attachment_reference.layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -312,7 +333,7 @@ namespace Pilot
         combine_ui_pass.preserveAttachmentCount = 0;
         combine_ui_pass.pPreserveAttachments    = NULL;
 
-        VkSubpassDependency dependencies[7] = {};
+        VkSubpassDependency dependencies[8] = {};
 
         VkSubpassDependency& deferred_lighting_pass_depend_on_shadow_map_pass = dependencies[0];
         deferred_lighting_pass_depend_on_shadow_map_pass.srcSubpass           = VK_SUBPASS_EXTERNAL;
@@ -362,16 +383,30 @@ namespace Pilot
         color_grading_pass_depend_on_tone_mapping_pass.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT;
         color_grading_pass_depend_on_tone_mapping_pass.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-        VkSubpassDependency& ui_pass_depend_on_color_grading_pass = dependencies[5];
-        ui_pass_depend_on_color_grading_pass.srcSubpass           = _main_camera_subpass_color_grading;
-        ui_pass_depend_on_color_grading_pass.dstSubpass           = _main_camera_subpass_ui;
-        ui_pass_depend_on_color_grading_pass.srcStageMask         = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        ui_pass_depend_on_color_grading_pass.dstStageMask         = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        ui_pass_depend_on_color_grading_pass.srcAccessMask        = 0;
-        ui_pass_depend_on_color_grading_pass.dstAccessMask        = 0;
-        ui_pass_depend_on_color_grading_pass.dependencyFlags      = VK_DEPENDENCY_BY_REGION_BIT;
+        VkSubpassDependency& screen_space_antialiasing_pass_depend_on_color_grading_pass = dependencies[5];
+        screen_space_antialiasing_pass_depend_on_color_grading_pass.srcSubpass = _main_camera_subpass_color_grading;
+        screen_space_antialiasing_pass_depend_on_color_grading_pass.dstSubpass =
+            _main_camera_subpass_screen_space_antialiasing;
+        screen_space_antialiasing_pass_depend_on_color_grading_pass.srcStageMask =
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        screen_space_antialiasing_pass_depend_on_color_grading_pass.dstStageMask =
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        screen_space_antialiasing_pass_depend_on_color_grading_pass.srcAccessMask =
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        screen_space_antialiasing_pass_depend_on_color_grading_pass.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        screen_space_antialiasing_pass_depend_on_color_grading_pass.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-        VkSubpassDependency& combine_ui_pass_depend_on_ui_pass = dependencies[6];
+        VkSubpassDependency& ui_pass_depend_on_screen_space_antialiasing_pass = dependencies[6];
+        ui_pass_depend_on_screen_space_antialiasing_pass.srcSubpass = _main_camera_subpass_screen_space_antialiasing;
+        ui_pass_depend_on_screen_space_antialiasing_pass.dstSubpass           = _main_camera_subpass_ui;
+        ui_pass_depend_on_screen_space_antialiasing_pass.srcStageMask         = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        ui_pass_depend_on_screen_space_antialiasing_pass.dstStageMask         = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        ui_pass_depend_on_screen_space_antialiasing_pass.srcAccessMask        = 0;
+        ui_pass_depend_on_screen_space_antialiasing_pass.dstAccessMask        = 0;
+        ui_pass_depend_on_screen_space_antialiasing_pass.dependencyFlags      = VK_DEPENDENCY_BY_REGION_BIT;
+
+
+        VkSubpassDependency& combine_ui_pass_depend_on_ui_pass = dependencies[7];
         combine_ui_pass_depend_on_ui_pass.srcSubpass           = _main_camera_subpass_ui;
         combine_ui_pass_depend_on_ui_pass.dstSubpass           = _main_camera_subpass_combine_ui;
         combine_ui_pass_depend_on_ui_pass.srcStageMask         = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;

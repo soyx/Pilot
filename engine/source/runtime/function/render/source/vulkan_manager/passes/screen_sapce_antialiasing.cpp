@@ -168,7 +168,7 @@ namespace Pilot
         pipelineInfo.pDepthStencilState  = &depth_stencil_create_info;
         pipelineInfo.layout              = _render_pipelines[0].layout;
         pipelineInfo.renderPass          = _framebuffer.render_pass;
-        pipelineInfo.subpass             = _main_camera_subpass_screen_antialiasing;
+        pipelineInfo.subpass             = _main_camera_subpass_screen_space_antialiasing;
         pipelineInfo.basePipelineHandle  = VK_NULL_HANDLE;
         pipelineInfo.pDynamicState       = &dynamic_state_create_info;
 
@@ -234,16 +234,16 @@ namespace Pilot
 
     void PScreenSpaceAntialiasingPass::draw()
     {
-        if (m_render_config._enable_debug_untils_label)
-        {
-            VkDebugUtilsLabelEXT label_info = {
-                VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, nullptr, "FXAA", {1.0f, 1.0f, 1.0f, 1.0f}};
-            m_p_vulkan_context->_vkCmdBeginDebugUtilsLabelEXT(m_command_info._current_command_buffer, &label_info);
-        }
+        //if (m_render_config._enable_debug_untils_label)
+        //{
+        //    VkDebugUtilsLabelEXT label_info = {
+        //        VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT, nullptr, "FXAA", {1.0f, 1.0f, 1.0f, 1.0f}};
+        //    m_p_vulkan_context->_vkCmdBeginDebugUtilsLabelEXT(m_command_info._current_command_buffer, &label_info);
+        //}
 
-        m_p_vulkan_context->_vkCmdBindPipeline(
-            m_command_info._current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _render_pipelines[0].pipeline);
+        //m_p_vulkan_context->_vkCmdBindPipeline(
+        //    m_command_info._current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _render_pipelines[0].pipeline);
 
-        m_p_vulkan_context->_vkCmdSetViewport(m_command_info._current_command_buffer, 0, 1, &m_command_info._viewport);
+        //m_p_vulkan_context->_vkCmdSetViewport(m_command_info._current_command_buffer, 0, 1, &m_command_info._viewport);
     }
 } // namespace Pilot
