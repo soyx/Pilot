@@ -33,6 +33,10 @@ bool Pilot::PVulkanManager::initializeRenderPass()
 
     m_color_grading_pass.initialize(m_main_camera_pass.getRenderPass(), m_main_camera_pass.getFramebufferImageViews()[_main_camera_pass_backup_buffer_even]);
 
+    m_screen_space_antialiasing_pass.initialize(
+        m_main_camera_pass.getRenderPass(),
+        m_main_camera_pass.getFramebufferImageViews()[_main_camera_pass_backup_buffer_odd]);
+
     m_ui_pass.initialize(m_main_camera_pass.getRenderPass());
 
     m_combine_ui_pass.initialize(m_main_camera_pass.getRenderPass(), m_main_camera_pass.getFramebufferImageViews()[_main_camera_pass_backup_buffer_odd], m_main_camera_pass.getFramebufferImageViews()[_main_camera_pass_backup_buffer_even]);

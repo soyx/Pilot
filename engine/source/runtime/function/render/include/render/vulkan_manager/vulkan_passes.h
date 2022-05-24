@@ -151,12 +151,13 @@ namespace Pilot
 
         void initialize();
 
-        void draw(PColorGradingPass& color_grading_pass,
-                  PToneMappingPass&  tone_mapping_pass,
-                  PUIPass&           ui_pass,
-                  PCombineUIPass&    combine_ui_pass,
-                  uint32_t           current_swapchain_image_index,
-                  void*              ui_state);
+        void draw(PScreenSpaceAntialiasingPass& screen_space_antialiasing_pass,
+                  PColorGradingPass&            color_grading_pass,
+                  PToneMappingPass&             tone_mapping_pass,
+                  PUIPass&                      ui_pass,
+                  PCombineUIPass&               combine_ui_pass,
+                  uint32_t                      current_swapchain_image_index,
+                  void*                         ui_state);
 
         // legacy
         void drawForward(PColorGradingPass& color_grading_pass,
