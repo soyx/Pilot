@@ -275,12 +275,12 @@ namespace Pilot
 
         VkAttachmentReference screen_space_antialiasing_pass_intput_attachment_reference {};
         screen_space_antialiasing_pass_intput_attachment_reference.attachment =
-            &backup_even_color_attachment_description - attachments;
+            &backup_odd_color_attachment_description - attachments;
         screen_space_antialiasing_pass_intput_attachment_reference.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkAttachmentReference screen_space_antialiasing_pass_color_attachment_reference {};
         screen_space_antialiasing_pass_color_attachment_reference.attachment =
-            &backup_odd_color_attachment_description - attachments;
+            &backup_even_color_attachment_description - attachments;
         screen_space_antialiasing_pass_color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkSubpassDescription& screen_space_antialiasing_pass =
