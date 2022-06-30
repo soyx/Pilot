@@ -5,7 +5,7 @@
 #include "runtime/function/render/include/render/vulkan_manager/vulkan_util.h"
 
 #include <fxaa_frag.h>
-#include <post_process_vert.h>
+#include <fxaa_vert.h>
 
 namespace Pilot
 {
@@ -21,7 +21,7 @@ namespace Pilot
     {
         _descriptor_infos.resize(1);
 
-        VkDescriptorSetLayoutBinding post_process_global_layout_bindings[1] = {};
+        VkDescriptorSetLayoutBinding post_process_global_layout_bindings[2] = {};
 
         VkDescriptorSetLayoutBinding& post_process_global_layout_input_attachment_binding =
             post_process_global_layout_bindings[0];
@@ -29,6 +29,13 @@ namespace Pilot
         post_process_global_layout_input_attachment_binding.descriptorType  = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         post_process_global_layout_input_attachment_binding.descriptorCount = 1;
         post_process_global_layout_input_attachment_binding.stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorSetLayoutBinding& post_process_global_layout_render_image_binding =
+            post_process_global_layout_bindings[1];
+        post_process_global_layout_render_image_binding.binding = 1;
+        post_process_global_layout_render_image_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        post_process_global_layout_render_image_binding.descriptorCount = 1;
+        post_process_global_layout_render_image_binding.stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         VkDescriptorSetLayoutCreateInfo post_process_global_layout_create_info {};
         post_process_global_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -63,7 +70,7 @@ namespace Pilot
         }
 
         VkShaderModule vert_shader_module =
-            PVulkanUtil::createShaderModule(m_p_vulkan_context->_device, POST_PROCESS_VERT);
+            PVulkanUtil::createShaderModule(m_p_vulkan_context->_device, FXAA_VERT);
         VkShaderModule frag_shader_module = PVulkanUtil::createShaderModule(m_p_vulkan_context->_device, FXAA_FRAG);
 
         VkPipelineShaderStageCreateInfo vert_pipeline_shader_stage_create_info {};
@@ -195,12 +202,14 @@ namespace Pilot
         post_process_global_descriptor_set_alloc_info.descriptorSetCount = 1;
         post_process_global_descriptor_set_alloc_info.pSetLayouts        = &_descriptor_infos[0].layout;
 
+
         if (vkAllocateDescriptorSets(m_p_vulkan_context->_device,
                                      &post_process_global_descriptor_set_alloc_info,
                                      &_descriptor_infos[0].descriptor_set) != VK_SUCCESS)
         {
             throw std::runtime_error("allocate post process global descriptor set");
         }
+
     }
 
     void PScreenSpaceAntialiasingPass::updateAfterFramebufferRecreate(VkImageView input_attachment)
@@ -211,7 +220,13 @@ namespace Pilot
         post_process_per_frame_input_attachment_info.imageView   = input_attachment;
         post_process_per_frame_input_attachment_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-        VkWriteDescriptorSet post_process_descriptor_writes_info[1];
+        VkDescriptorImageInfo screen_space_antialiasing_image_info = {};
+        screen_space_antialiasing_image_info.sampler =
+            PVulkanUtil::getOrCreateNearestSampler(m_p_vulkan_context->_physical_device, m_p_vulkan_context->_device);
+        screen_space_antialiasing_image_info.imageView = input_attachment;
+        screen_space_antialiasing_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        VkWriteDescriptorSet post_process_descriptor_writes_info[2];
 
         VkWriteDescriptorSet& post_process_descriptor_input_attachment_write_info =
             post_process_descriptor_writes_info[0];
@@ -223,6 +238,16 @@ namespace Pilot
         post_process_descriptor_input_attachment_write_info.descriptorType  = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         post_process_descriptor_input_attachment_write_info.descriptorCount = 1;
         post_process_descriptor_input_attachment_write_info.pImageInfo = &post_process_per_frame_input_attachment_info;
+
+        VkWriteDescriptorSet& post_process_descriptor_render_image_write_info = post_process_descriptor_writes_info[1];
+        post_process_descriptor_render_image_write_info.sType                 = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        post_process_descriptor_render_image_write_info.pNext                 = nullptr;
+        post_process_descriptor_render_image_write_info.dstSet                = _descriptor_infos[0].descriptor_set;
+        post_process_descriptor_render_image_write_info.dstBinding            = 1;
+        post_process_descriptor_render_image_write_info.dstArrayElement       = 0;
+        post_process_descriptor_render_image_write_info.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        post_process_descriptor_render_image_write_info.descriptorCount = 1;
+        post_process_descriptor_render_image_write_info.pImageInfo      = &screen_space_antialiasing_image_info;
 
         vkUpdateDescriptorSets(m_p_vulkan_context->_device,
                                sizeof(post_process_descriptor_writes_info) /
@@ -244,7 +269,13 @@ namespace Pilot
         m_p_vulkan_context->_vkCmdBindPipeline(
             m_command_info._current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _render_pipelines[0].pipeline);
 
-        m_p_vulkan_context->_vkCmdSetViewport(m_command_info._current_command_buffer, 0, 1, &m_command_info._viewport);
+        VkViewport viewport = m_command_info._viewport;
+        viewport.x          = m_command_info._scissor.offset.x;
+        viewport.y          = m_command_info._scissor.offset.y;
+        viewport.width          = m_command_info._scissor.extent.width;
+        viewport.height          = m_command_info._scissor.extent.height;
+        //m_p_vulkan_context->_vkCmdSetViewport(m_command_info._current_command_buffer, 0, 1, &m_command_info._viewport);
+        m_p_vulkan_context->_vkCmdSetViewport(m_command_info._current_command_buffer, 0, 1, &viewport);
         m_p_vulkan_context->_vkCmdSetScissor(m_command_info._current_command_buffer, 0, 1, &m_command_info._scissor);
         m_p_vulkan_context->_vkCmdBindDescriptorSets(m_command_info._current_command_buffer,
                                                      VK_PIPELINE_BIND_POINT_GRAPHICS,

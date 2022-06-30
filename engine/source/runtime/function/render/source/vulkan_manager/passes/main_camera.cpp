@@ -46,19 +46,31 @@ namespace Pilot
         _framebuffer.attachments[_main_camera_pass_gbuffer_a].format          = VK_FORMAT_R8G8B8A8_UNORM;
         _framebuffer.attachments[_main_camera_pass_gbuffer_b].format          = VK_FORMAT_R8G8B8A8_UNORM;
         _framebuffer.attachments[_main_camera_pass_gbuffer_c].format          = VK_FORMAT_R8G8B8A8_SRGB;
+        _framebuffer.attachments[_main_camera_pass_sample_buffer].format      = VK_FORMAT_R16G16B16A16_SFLOAT;
         _framebuffer.attachments[_main_camera_pass_backup_buffer_odd].format  = VK_FORMAT_R16G16B16A16_SFLOAT;
         _framebuffer.attachments[_main_camera_pass_backup_buffer_even].format = VK_FORMAT_R16G16B16A16_SFLOAT;
 
         for (int i = 0; i < _main_camera_pass_custom_attachment_count; ++i)
         {
+            VkImageUsageFlags image_usage_flags;
+            if (i == _main_camera_pass_sample_buffer)
+            {
+                image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+                                    VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+            }
+            else
+            {
+                image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                    VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+            }
+
             PVulkanUtil::createImage(m_p_vulkan_context->_physical_device,
                                      m_p_vulkan_context->_device,
                                      m_p_vulkan_context->_swapchain_extent.width,
                                      m_p_vulkan_context->_swapchain_extent.height,
                                      _framebuffer.attachments[i].format,
                                      VK_IMAGE_TILING_OPTIMAL,
-                                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                                         VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
+                                     image_usage_flags,
                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                      _framebuffer.attachments[i].image,
                                      _framebuffer.attachments[i].mem,
@@ -113,6 +125,17 @@ namespace Pilot
         gbuffer_albedo_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         gbuffer_albedo_attachment_description.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
         gbuffer_albedo_attachment_description.finalLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        VkAttachmentDescription& sample_buffer_attachment_description = attachments[_main_camera_pass_sample_buffer];
+        sample_buffer_attachment_description.format =
+            _framebuffer.attachments[_main_camera_pass_sample_buffer].format;
+        sample_buffer_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
+        sample_buffer_attachment_description.loadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        sample_buffer_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        sample_buffer_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        sample_buffer_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        sample_buffer_attachment_description.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
+        sample_buffer_attachment_description.finalLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkAttachmentDescription& backup_odd_color_attachment_description =
             attachments[_main_camera_pass_backup_buffer_odd];
@@ -259,8 +282,9 @@ namespace Pilot
         color_grading_pass_input_attachment_reference.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkAttachmentReference color_grading_pass_color_attachment_reference {};
-        color_grading_pass_color_attachment_reference.attachment =
-            &backup_odd_color_attachment_description - attachments;
+        //color_grading_pass_color_attachment_reference.attachment =
+        //    &backup_odd_color_attachment_description - attachments;
+        color_grading_pass_color_attachment_reference.attachment = &sample_buffer_attachment_description - attachments;
         color_grading_pass_color_attachment_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkSubpassDescription& color_grading_pass   = subpasses[_main_camera_subpass_color_grading];
@@ -275,7 +299,7 @@ namespace Pilot
 
         VkAttachmentReference screen_space_antialiasing_pass_intput_attachment_reference {};
         screen_space_antialiasing_pass_intput_attachment_reference.attachment =
-            &backup_odd_color_attachment_description - attachments;
+            &sample_buffer_attachment_description - attachments;
         screen_space_antialiasing_pass_intput_attachment_reference.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkAttachmentReference screen_space_antialiasing_pass_color_attachment_reference {};
@@ -313,9 +337,11 @@ namespace Pilot
         VkAttachmentReference combine_ui_pass_input_attachments_reference[2] = {};
         combine_ui_pass_input_attachments_reference[0].attachment =
             &backup_even_color_attachment_description - attachments;
+            //&backup_odd_color_attachment_description - attachments;
         combine_ui_pass_input_attachments_reference[0].layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         combine_ui_pass_input_attachments_reference[1].attachment =
             &backup_odd_color_attachment_description - attachments;
+            //&backup_even_color_attachment_description - attachments;
         combine_ui_pass_input_attachments_reference[1].layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkAttachmentReference combine_ui_pass_color_attachment_reference {};
@@ -2052,6 +2078,7 @@ namespace Pilot
                 _framebuffer.attachments[_main_camera_pass_gbuffer_a].view,
                 _framebuffer.attachments[_main_camera_pass_gbuffer_b].view,
                 _framebuffer.attachments[_main_camera_pass_gbuffer_c].view,
+                _framebuffer.attachments[_main_camera_pass_sample_buffer].view,
                 _framebuffer.attachments[_main_camera_pass_backup_buffer_odd].view,
                 _framebuffer.attachments[_main_camera_pass_backup_buffer_even].view,
                 m_p_vulkan_context->_depth_image_view,
@@ -2118,6 +2145,7 @@ namespace Pilot
             clear_values[_main_camera_pass_gbuffer_a].color          = {{0.0f, 0.0f, 0.0f, 0.0f}};
             clear_values[_main_camera_pass_gbuffer_b].color          = {{0.0f, 0.0f, 0.0f, 0.0f}};
             clear_values[_main_camera_pass_gbuffer_c].color          = {{0.0f, 0.0f, 0.0f, 0.0f}};
+            clear_values[_main_camera_pass_sample_buffer].color      = {{0.0f, 0.0f, 0.0f, 0.0f}};
             clear_values[_main_camera_pass_backup_buffer_odd].color  = {{0.0f, 0.0f, 0.0f, 1.0f}};
             clear_values[_main_camera_pass_backup_buffer_even].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
             clear_values[_main_camera_pass_depth].depthStencil       = {1.0f, 0};
