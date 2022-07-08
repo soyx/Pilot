@@ -6,7 +6,7 @@
 #include "runtime/core/math/transform.h"
 #include "runtime/core/meta/reflection/reflection.h"
 
-namespace Pilot
+namespace Piccolo
 {
     enum class RigidBodyShapeType : unsigned char
     {
@@ -31,17 +31,20 @@ namespace Pilot
         META(Enable)
         Reflection::ReflectionPtr<Geometry> m_geometry;
 
-        ~RigidBodyShape() { PILOT_REFLECTION_DELETE(m_geometry); }
+        RigidBodyShape() = default;
+        RigidBodyShape(const RigidBodyShape& res);
+
+        ~RigidBodyShape();
     };
 
-    REFLECTION_TYPE(RigidBodyActorRes)
-    CLASS(RigidBodyActorRes, Fields)
+    REFLECTION_TYPE(RigidBodyComponentRes)
+    CLASS(RigidBodyComponentRes, Fields)
     {
-        REFLECTION_BODY(RigidBodyActorRes);
+        REFLECTION_BODY(RigidBodyComponentRes);
 
     public:
         std::vector<RigidBodyShape> m_shapes;
         float                       m_inverse_mass;
         int                         m_actor_type;
     };
-} // namespace Pilot
+} // namespace Piccolo

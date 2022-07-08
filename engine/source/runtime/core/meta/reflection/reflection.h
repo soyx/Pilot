@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace Pilot
+namespace Piccolo
 {
 
 #if defined(__REFLECTION_PARSER__)
@@ -41,19 +41,21 @@ namespace Pilot
 #define REGISTER_ARRAY_TO_MAP(name, value) TypeMetaRegisterinterface::registerToArrayMap(name, value);
 #define UNREGISTER_ALL TypeMetaRegisterinterface::unregisterAll();
 
-#define PILOT_REFLECTION_NEW(name, ...) Reflection::ReflectionPtr(#name, new name(__VA_ARGS__));
-#define PILOT_REFLECTION_DELETE(value) \
+#define PICCOLO_REFLECTION_NEW(name, ...) Reflection::ReflectionPtr(#name, new name(__VA_ARGS__));
+#define PICCOLO_REFLECTION_DELETE(value) \
     if (value) \
     { \
         delete value.operator->(); \
         value.getPtrReference() = nullptr; \
     }
+#define PICCOLO_REFLECTION_DEEP_COPY(type, dst_ptr, src_ptr) \
+    *static_cast<type*>(dst_ptr) = *static_cast<type*>(src_ptr.getPtr());
 
 #define TypeMetaDef(class_name, ptr) \
-    Pilot::Reflection::ReflectionInstance(Pilot::Reflection::TypeMeta::newMetaFromName(#class_name), (class_name*)ptr)
+    Piccolo::Reflection::ReflectionInstance(Piccolo::Reflection::TypeMeta::newMetaFromName(#class_name), (class_name*)ptr)
 
 #define TypeMetaDefPtr(class_name, ptr) \
-    new Pilot::Reflection::ReflectionInstance(Pilot::Reflection::TypeMeta::newMetaFromName(#class_name), \
+    new Piccolo::Reflection::ReflectionInstance(Piccolo::Reflection::TypeMeta::newMetaFromName(#class_name), \
                                               (class_name*)ptr)
 
     template<typename T, typename U, typename = void>
@@ -71,32 +73,32 @@ namespace Pilot
         class ArrayAccessor;
         class ReflectionInstance;
     } // namespace Reflection
-    typedef std::function<void(void*, void*)>      setFuncion;
-    typedef std::function<void*(void*)>            getFuncion;
-    typedef std::function<const char*()>           getNameFuncion;
-    typedef std::function<void(int, void*, void*)> setArrayFunc;
-    typedef std::function<void*(int, void*)>       getArrayFunc;
-    typedef std::function<int(void*)>              getSizeFunc;
-    typedef std::function<bool()>                  getBoolFunc;
+    typedef std::function<void(void*, void*)>      SetFuncion;
+    typedef std::function<void*(void*)>            GetFuncion;
+    typedef std::function<const char*()>           GetNameFuncion;
+    typedef std::function<void(int, void*, void*)> SetArrayFunc;
+    typedef std::function<void*(int, void*)>       GetArrayFunc;
+    typedef std::function<int(void*)>              GetSizeFunc;
+    typedef std::function<bool()>                  GetBoolFunc;
 
-    typedef std::function<void*(const PJson&)>                          constructorWithPJson;
-    typedef std::function<PJson(void*)>                                 writePJsonByName;
-    typedef std::function<int(Reflection::ReflectionInstance*&, void*)> getBaseClassReflectionInstanceListFunc;
+    typedef std::function<void*(const PJson&)>                          ConstructorWithPJson;
+    typedef std::function<PJson(void*)>                                 WritePJsonByName;
+    typedef std::function<int(Reflection::ReflectionInstance*&, void*)> GetBaseClassReflectionInstanceListFunc;
 
-    typedef std::tuple<setFuncion, getFuncion, getNameFuncion, getNameFuncion, getNameFuncion, getBoolFunc>
-        filed_function_tuple;
-    typedef std::tuple<getBaseClassReflectionInstanceListFunc, constructorWithPJson, writePJsonByName>
-                                                                                                class_function_tuple;
-    typedef std::tuple<setArrayFunc, getArrayFunc, getSizeFunc, getNameFuncion, getNameFuncion> array_function_tuple;
+    typedef std::tuple<SetFuncion, GetFuncion, GetNameFuncion, GetNameFuncion, GetNameFuncion, GetBoolFunc>
+        FieldFunctionTuple;
+    typedef std::tuple<GetBaseClassReflectionInstanceListFunc, ConstructorWithPJson, WritePJsonByName>
+                                                                                                ClassFunctionTuple;
+    typedef std::tuple<SetArrayFunc, GetArrayFunc, GetSizeFunc, GetNameFuncion, GetNameFuncion> ArrayFunctionTuple;
 
     namespace Reflection
     {
         class TypeMetaRegisterinterface
         {
         public:
-            static void registerToClassMap(const char* name, class_function_tuple* value);
-            static void registerToFieldMap(const char* name, filed_function_tuple* value);
-            static void registerToArrayMap(const char* name, array_function_tuple* value);
+            static void registerToClassMap(const char* name, ClassFunctionTuple* value);
+            static void registerToFieldMap(const char* name, FieldFunctionTuple* value);
+            static void registerToArrayMap(const char* name, ArrayFunctionTuple* value);
 
             static void unregisterAll();
         };
@@ -104,7 +106,6 @@ namespace Pilot
         {
             friend class FieldAccessor;
             friend class ArrayAccessor;
-            ;
             friend class TypeMetaRegisterinterface;
 
         public:
@@ -169,17 +170,17 @@ namespace Pilot
             FieldAccessor& operator=(const FieldAccessor& dest);
 
         private:
-            FieldAccessor(filed_function_tuple* functions);
+            FieldAccessor(FieldFunctionTuple* functions);
 
         private:
-            filed_function_tuple* m_functions;
-            const char*           m_field_name;
-            const char*           m_field_type_name;
+            FieldFunctionTuple* m_functions;
+            const char*         m_field_name;
+            const char*         m_field_type_name;
         };
 
-        /// <summary>
-        /// Function reflection is not implemented, so use this as an std::vector accessor
-        /// </summary>
+        /**
+         *  Function reflection is not implemented, so use this as an std::vector accessor
+         */
         class ArrayAccessor
         {
             friend class TypeMeta;
@@ -196,12 +197,12 @@ namespace Pilot
             ArrayAccessor& operator=(ArrayAccessor& dest);
 
         private:
-            ArrayAccessor(array_function_tuple* array_func);
+            ArrayAccessor(ArrayFunctionTuple* array_func);
 
         private:
-            array_function_tuple* m_func;
-            const char*           m_array_type_name;
-            const char*           m_element_type_name;
+            ArrayFunctionTuple* m_func;
+            const char*         m_array_type_name;
+            const char*         m_element_type_name;
         };
 
         class ReflectionInstance
@@ -323,6 +324,10 @@ namespace Pilot
 
             T& operator*() { return *(m_instance); }
 
+            T* getPtr() { return m_instance; }
+
+            T* getPtr() const { return m_instance; }
+
             const T& operator*() const { return *(static_cast<const T*>(m_instance)); }
 
             T*& getPtrReference() { return m_instance; }
@@ -337,4 +342,4 @@ namespace Pilot
 
     } // namespace Reflection
 
-} // namespace Pilot
+} // namespace Piccolo

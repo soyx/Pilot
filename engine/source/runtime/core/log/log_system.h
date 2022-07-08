@@ -1,16 +1,14 @@
 #pragma once
 
-#include "runtime/core/base/public_singleton.h"
-
 #include <spdlog/spdlog.h>
 
 #include <cstdint>
 #include <stdexcept>
 
-namespace Pilot
+namespace Piccolo
 {
 
-    class LogSystem final : public PublicSingleton<LogSystem>
+    class LogSystem final
     {
     public:
         enum class LogLevel : uint8_t
@@ -63,4 +61,4 @@ namespace Pilot
         std::shared_ptr<spdlog::logger> m_logger;
     };
 
-} // namespace Pilot
+} // namespace Piccolo

@@ -1,6 +1,6 @@
 #include "serializer.h"
 #include <assert.h>
-namespace Pilot
+namespace Piccolo
 {
 
     template<>
@@ -23,7 +23,6 @@ namespace Pilot
     template<>
     int& PSerializer::read(const PJson& json_context, int& instance)
     {
-        auto hh = json_context.type();
         assert(json_context.is_number());
         return instance = static_cast<int>(json_context.number_value());
     }
@@ -150,4 +149,4 @@ namespace Pilot
     }*/
 
     ////////////////////////////////////
-} // namespace Pilot
+} // namespace Piccolo

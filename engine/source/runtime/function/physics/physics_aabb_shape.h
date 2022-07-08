@@ -4,12 +4,12 @@
 
 #include "runtime/function/physics/physics_shape_base.h"
 
-namespace Pilot
+namespace Piccolo
 {
     class PhysicsAABBShape : public PhysicsShapeBase
     {
     public:
-        PhysicsAABBShape(Transform* transform, const Vector3 half_dimensions) :
+        PhysicsAABBShape(const Transform& transform, const Vector3 half_dimensions) :
             PhysicsShapeBase(transform), m_half_dimensions(half_dimensions)
         {}
 
@@ -20,4 +20,4 @@ namespace Pilot
     private:
         Vector3 m_half_dimensions;
     };
-} // namespace Pilot
+} // namespace Piccolo

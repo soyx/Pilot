@@ -1,7 +1,7 @@
 #pragma once
 
-#include "runtime/core/base/public_singleton.h"
 #include "runtime/core/math/transform.h"
+
 #include "runtime/function/physics/collision_detection.h"
 #include "runtime/function/physics/physics_actor.h"
 
@@ -9,9 +9,10 @@
 
 #include <set>
 
-namespace Pilot
+namespace Piccolo
 {
-    class PhysicsSystem : public PublicSingleton<PhysicsSystem>
+    /// This Physics System is legacy, will be removed lated
+    class PhysicsSystem
     {
     public:
         void tick(float delta_time);
@@ -20,9 +21,9 @@ namespace Pilot
         void setGravity(const Vector3& g) { m_gravity = g; }
         void setGlobalDamping(float damping) { m_global_damping = damping; }
 
-        PhysicsActor* createPhysicsActor(GObject*                 gobject,
-                                         const Transform&         global_transform,
-                                         const RigidBodyActorRes& rigid_body_actor_res);
+        PhysicsActor* createPhysicsActor(std::weak_ptr<GObject>       gobject,
+                                         const Transform&             global_transform,
+                                         const RigidBodyComponentRes& rigid_body_actor_res);
         void          removePhyicsActor(PhysicsActor* gobject);
 
         bool raycast(const Vector3& ray_start, const Vector3& ray_direction, Vector3& out_hit_position);
@@ -40,7 +41,7 @@ namespace Pilot
 
         void impulseResolveCollision(PhysicsActor& object_a, PhysicsActor& object_b, ContactPoint& contact_point) const;
 
-        bool overlap(const AxisAlignedBox& query_bouding);
+        bool isOverlap(const AxisAlignedBox& query_bouding);
 
     private:
         std::vector<PhysicsActor*> m_physics_actors;
@@ -54,4 +55,4 @@ namespace Pilot
         Vector3 m_gravity {0.0f, 0.0f, -9.8f};
         bool    m_is_use_gravity {true};
     };
-} // namespace Pilot
+} // namespace Piccolo

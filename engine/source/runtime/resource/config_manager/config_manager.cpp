@@ -1,15 +1,17 @@
 #include "runtime/resource/config_manager/config_manager.h"
 
+#include "runtime/engine.h"
+
+#include <filesystem>
 #include <fstream>
 #include <string>
 
-namespace Pilot
+namespace Piccolo
 {
-    void ConfigManager::initialize(const EngineInitParams& init_param)
+    void ConfigManager::initialize(const std::filesystem::path& config_file_path)
     {
-        m_root_folder = init_param.m_root_folder;
         // read configs
-        std::ifstream config_file(init_param.m_config_file_path);
+        std::ifstream config_file(config_file_path);
         std::string   config_line;
         while (std::getline(config_file, config_line))
         {
@@ -18,7 +20,11 @@ namespace Pilot
             {
                 std::string name  = config_line.substr(0, seperate_pos);
                 std::string value = config_line.substr(seperate_pos + 1, config_line.length() - seperate_pos - 1);
-                if (name == "AssetFolder")
+                if (name == "BinaryRootFolder")
+                {
+                    m_root_folder = config_file_path.parent_path() / value;
+                }
+                else if (name == "AssetFolder")
                 {
                     m_asset_folder = m_root_folder / value;
                 }
@@ -28,7 +34,7 @@ namespace Pilot
                 }
                 else if (name == "DefaultWorld")
                 {
-                    m_default_world_path = m_asset_folder / value;
+                    m_default_world_url = value;
                 }
                 else if (name == "BigIconFile")
                 {
@@ -44,18 +50,16 @@ namespace Pilot
                 }
                 else if (name == "GlobalRenderingRes")
                 {
-                    m_global_rendering_res_path = m_asset_folder / value;
+                    m_global_rendering_res_url = value;
                 }
+#ifdef ENABLE_PHYSICS_DEBUG_RENDERER
+                else if (name == "JoltAssetFolder")
+                {
+                    m_jolt_physics_asset_folder = m_root_folder / value;
+                }
+#endif
             }
         }
-    }
-
-    void ConfigManager::clear()
-    {
-        m_root_folder.clear();
-        m_asset_folder.clear();
-        m_schema_folder.clear();
-        m_default_world_path.clear();
     }
 
     const std::filesystem::path& ConfigManager::getRootFolder() const { return m_root_folder; }
@@ -64,16 +68,18 @@ namespace Pilot
 
     const std::filesystem::path& ConfigManager::getSchemaFolder() const { return m_schema_folder; }
 
-    const std::filesystem::path& ConfigManager::getDefaultWorldUrl() const { return m_default_world_path; }
-
     const std::filesystem::path& ConfigManager::getEditorBigIconPath() const { return m_editor_big_icon_path; }
 
     const std::filesystem::path& ConfigManager::getEditorSmallIconPath() const { return m_editor_small_icon_path; }
 
     const std::filesystem::path& ConfigManager::getEditorFontPath() const { return m_editor_font_path; }
 
-    const std::filesystem::path& ConfigManager::getGlobalRenderingResPath() const
-    {
-        return m_global_rendering_res_path;
-    }
-} // namespace Pilot
+    const std::string& ConfigManager::getDefaultWorldUrl() const { return m_default_world_url; }
+
+    const std::string& ConfigManager::getGlobalRenderingResUrl() const { return m_global_rendering_res_url; }
+
+#ifdef ENABLE_PHYSICS_DEBUG_RENDERER
+    const std::filesystem::path& ConfigManager::getJoltPhysicsAssetFolder() const { return m_jolt_physics_asset_folder; }
+#endif
+
+} // namespace Piccolo

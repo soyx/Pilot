@@ -2,9 +2,9 @@
 
 using namespace std;
 
-namespace Pilot
+namespace Piccolo
 {
-    vector<filesystem::path> FileService::getFiles(const filesystem::path& directory)
+    vector<filesystem::path> FileSystem::getFiles(const filesystem::path& directory)
     {
         vector<filesystem::path> files;
         for (auto const& directory_entry : filesystem::recursive_directory_iterator {directory})
@@ -16,4 +16,4 @@ namespace Pilot
         }
         return files;
     }
-} // namespace Pilot
+} // namespace Piccolo

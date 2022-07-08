@@ -1,6 +1,6 @@
 
 # PackageProject.cmake will be used to make our target installable
-set(TARGET_NAME PilotRuntime)
+set(TARGET_NAME PiccoloRuntime)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -47,8 +47,14 @@ target_link_libraries(${TARGET_NAME} PRIVATE tinyobjloader stb)
 target_link_libraries(${TARGET_NAME} PUBLIC glm)
 target_link_libraries(${TARGET_NAME} PUBLIC glfw)
 target_link_libraries(${TARGET_NAME} PUBLIC imgui)
+target_link_libraries(${TARGET_NAME} PUBLIC Jolt)
 target_link_libraries(${TARGET_NAME} PUBLIC ${vulkan_lib})
 target_link_libraries(${TARGET_NAME} PRIVATE $<BUILD_INTERFACE:json11>)
+
+if(ENABLE_PHYSICS_DEBUG_RENDERER)
+  add_compile_definitions(ENABLE_PHYSICS_DEBUG_RENDERER)
+  target_link_libraries(${TARGET_NAME} PUBLIC TestFramework d3d12.lib shcore.lib)
+endif()
 
 target_include_directories(
   ${TARGET_NAME}
@@ -100,4 +106,4 @@ string(TOLOWER ${TARGET_NAME}/version.h VERSION_HEADER_LOCATION)
 
 ### precompile
 # set global vari used by precompile
-set(PILOT_RUNTIME_HEADS "${HEADER_FILES}" PARENT_SCOPE)
+set(PICCOLO_RUNTIME_HEADS "${HEADER_FILES}" PARENT_SCOPE)

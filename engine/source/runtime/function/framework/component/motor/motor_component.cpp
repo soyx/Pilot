@@ -1,9 +1,7 @@
 #include "runtime/function/framework/component/motor/motor_component.h"
 
 #include "runtime/core/base/macro.h"
-#include "runtime/core/base/public_singleton.h"
 
-#include "runtime/engine.h"
 #include "runtime/function/character/character.h"
 #include "runtime/function/controller/character_controller.h"
 #include "runtime/function/framework/component/animation/animation_component.h"
@@ -12,66 +10,64 @@
 #include "runtime/function/framework/level/level.h"
 #include "runtime/function/framework/object/object.h"
 #include "runtime/function/framework/world/world_manager.h"
+#include "runtime/function/global/global_context.h"
 #include "runtime/function/input/input_system.h"
+#include "runtime/function/physics/physics_scene.h"
 
-namespace Pilot
+namespace Piccolo
 {
-    MotorComponent::MotorComponent(const MotorRes& motor_param, GObject* parent_object) :
-        Component(parent_object), m_motor_res(motor_param)
+    void MotorComponent::postLoadResource(std::weak_ptr<GObject> parent_object)
     {
-        if (motor_param.m_controller_config.getTypeName() == "PhysicsControllerConfig")
-        {
-            auto controller_config                            = new PhysicsControllerConfig;
-            m_motor_res.m_controller_config.getPtrReference() = controller_config;
-            *controller_config = *static_cast<PhysicsControllerConfig*>(motor_param.m_controller_config.operator->());
+        m_parent_object = parent_object;
 
-            m_motor_res.m_controller_type = ControllerType::physics;
-            m_controller                  = new CharacterController(controller_config->m_capsule_shape);
-        }
-        else if (motor_param.m_controller_config != nullptr)
+        if (m_motor_res.m_controller_config.getTypeName() == "PhysicsControllerConfig")
         {
-            m_motor_res.m_controller_type = ControllerType::invalid;
+            m_controller_type = ControllerType::physics;
+            PhysicsControllerConfig* controller_config =
+                static_cast<PhysicsControllerConfig*>(m_motor_res.m_controller_config);
+            m_controller = new CharacterController(controller_config->m_capsule_shape);
+        }
+        else if (m_motor_res.m_controller_config != nullptr)
+        {
+            m_controller_type = ControllerType::invalid;
             LOG_ERROR("invalid controller type, not able to move");
         }
 
-        const TransformComponent* transform_component = parent_object->tryGetComponentConst(TransformComponent);
+        const TransformComponent* transform_component = parent_object.lock()->tryGetComponentConst(TransformComponent);
 
         m_target_position = transform_component->getPosition();
     }
 
     MotorComponent::~MotorComponent()
     {
-        if (m_motor_res.m_controller_type == ControllerType::physics)
+        if (m_controller_type == ControllerType::physics)
         {
             delete m_controller;
             m_controller = nullptr;
         }
     }
 
-    void MotorComponent::tick(float delta_time)
-    {
-        if ((m_tick_in_editor_mode == false) && g_is_editor_mode)
-            return;
-
-        tickPlayerMotor(delta_time);
-    }
+    void MotorComponent::tick(float delta_time) { tickPlayerMotor(delta_time); }
 
     void MotorComponent::tickPlayerMotor(float delta_time)
     {
-        Level*     current_level     = WorldManager::getInstance().getCurrentActiveLevel();
-        Character* current_character = current_level->getCurrentActiveCharacter();
+        if (!m_parent_object.lock())
+            return;
+
+        std::shared_ptr<Level> current_level = g_runtime_global_context.m_world_manager->getCurrentActiveLevel().lock();
+        std::shared_ptr<Character> current_character = current_level->getCurrentActiveCharacter().lock();
         if (current_character == nullptr)
             return;
 
-        if (current_character->getObject() != m_parent_object)
+        if (current_character->getObjectID() != m_parent_object.lock()->getID())
             return;
 
         TransformComponent* transform_component =
-            m_parent_object->tryGetComponent<TransformComponent>("TransformComponent");
+            m_parent_object.lock()->tryGetComponent<TransformComponent>("TransformComponent");
 
-        Radian turn_angle_yaw = InputSystem::getInstance().m_cursor_delta_yaw;
+        Radian turn_angle_yaw = g_runtime_global_context.m_input_system->m_cursor_delta_yaw;
 
-        unsigned int command = InputSystem::getInstance().getGameCommand();
+        unsigned int command = g_runtime_global_context.m_input_system->getGameCommand();
 
         if (command >= (unsigned int)GameCommand::invalid)
             return;
@@ -83,7 +79,6 @@ namespace Pilot
         calculateTargetPosition(transform_component->getPosition());
 
         transform_component->setPosition(m_target_position);
-
     }
 
     void MotorComponent::calculatedDesiredHorizontalMoveSpeed(unsigned int command, float delta_time)
@@ -122,6 +117,36 @@ namespace Pilot
 
     void MotorComponent::calculatedDesiredVerticalMoveSpeed(unsigned int command, float delta_time)
     {
+        std::shared_ptr<PhysicsScene> physics_scene =
+            g_runtime_global_context.m_world_manager->getCurrentActivePhysicsScene().lock();
+        ASSERT(physics_scene);
+
+        if (m_motor_res.m_jump_height == 0.f)
+            return;
+
+        const float gravity = physics_scene->getGravity().length();
+
+        if (m_jump_state == JumpState::idle)
+        {
+            if ((unsigned int)GameCommand::jump & command)
+            {
+                m_jump_state                  = JumpState::rising;
+                m_vertical_move_speed         = Math::sqrt(m_motor_res.m_jump_height * 2 * gravity);
+                m_jump_horizontal_speed_ratio = m_move_speed_ratio;
+            }
+            else
+            {
+                m_vertical_move_speed = 0.f;
+            }
+        }
+        else if (m_jump_state == JumpState::rising || m_jump_state == JumpState::falling)
+        {
+            m_vertical_move_speed -= gravity * delta_time;
+            if (m_vertical_move_speed <= 0.f)
+            {
+                m_jump_state = JumpState::falling;
+            }
+        }
     }
 
     void MotorComponent::calculatedDesiredMoveDirection(unsigned int command, const Quaternion& object_rotation)
@@ -171,22 +196,23 @@ namespace Pilot
 
     void MotorComponent::calculateTargetPosition(const Vector3&& current_position)
     {
-        Vector3 final_position = current_position;
+        Vector3 final_position;
 
-        switch (m_motor_res.m_controller_type)
+        switch (m_controller_type)
         {
             case ControllerType::none:
-                final_position += m_desired_displacement;
+                final_position = current_position + m_desired_displacement;
                 break;
             case ControllerType::physics:
-                final_position = m_controller->move(final_position, m_desired_displacement);
+                final_position = m_controller->move(current_position, m_desired_displacement);
                 break;
             default:
+                final_position = current_position;
                 break;
         }
 
-        // Pilot-hack: motor level simulating jump, character always above z-plane
-        if (m_jump_state == JumpState::falling && m_target_position.z <= 0.f)
+        // Piccolo-hack: motor level simulating jump, character always above z-plane
+        if (m_jump_state == JumpState::falling && final_position.z + m_desired_displacement.z <= 0.f)
         {
             final_position.z = 0.f;
             m_jump_state     = JumpState::idle;
@@ -196,4 +222,4 @@ namespace Pilot
         m_target_position = final_position;
     }
 
-} // namespace Pilot
+} // namespace Piccolo

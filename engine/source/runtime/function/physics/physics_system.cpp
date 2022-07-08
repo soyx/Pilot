@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-namespace Pilot
+namespace Piccolo
 {
     void PhysicsSystem::tick(float delta_time)
     {
@@ -49,9 +49,9 @@ namespace Pilot
         clearForces();
     }
 
-    PhysicsActor* PhysicsSystem::createPhysicsActor(GObject*                 gobject,
-                                                    const Transform&         global_transform,
-                                                    const RigidBodyActorRes& rigid_body_actor_res)
+    PhysicsActor* PhysicsSystem::createPhysicsActor(std::weak_ptr<GObject>                     gobject,
+                                                    const Transform&             global_transform,
+                                                    const RigidBodyComponentRes& rigid_body_actor_res)
     {
         PhysicsActor* actor = new PhysicsActor(gobject, global_transform);
 
@@ -127,10 +127,10 @@ namespace Pilot
         Vector3        center         = position + capsule_height * Vector3::UNIT_Z;
         Vector3        half_extent    = Vector3(capsule.m_radius, capsule.m_radius, capsule_height);
         AxisAlignedBox bounding(center, half_extent);
-        return overlap(bounding);
+        return isOverlap(bounding);
     }
 
-    bool PhysicsSystem::overlap(const AxisAlignedBox& query_bouding)
+    bool PhysicsSystem::isOverlap(const AxisAlignedBox& query_bouding)
     {
         for (int i = 0; i < m_physics_actors.size(); i++)
         {
@@ -298,4 +298,4 @@ namespace Pilot
         actor_a.applyAngularImpulse(relative_a.crossProduct(-fullImpulse));
         actor_b.applyAngularImpulse(relative_b.crossProduct(fullImpulse));
     }
-} // namespace Pilot
+} // namespace Piccolo

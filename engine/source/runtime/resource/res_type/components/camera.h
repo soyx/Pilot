@@ -2,7 +2,7 @@
 #include "runtime/core/math/quaternion.h"
 #include "runtime/core/meta/reflection/reflection.h"
 
-namespace Pilot
+namespace Piccolo
 {
     REFLECTION_TYPE(CameraParameter)
     CLASS(CameraParameter, Fields)
@@ -55,6 +55,9 @@ namespace Pilot
     public:
         Reflection::ReflectionPtr<CameraParameter> m_parameter;
 
-        ~CameraComponentRes() { PILOT_REFLECTION_DELETE(m_parameter); }
+        CameraComponentRes() = default;
+        CameraComponentRes(const CameraComponentRes& res);
+
+        ~CameraComponentRes();
     };
-} // namespace Pilot
+} // namespace Piccolo

@@ -5,9 +5,9 @@
 #include "runtime/function/framework/component/transform/transform_component.h"
 #include "runtime/function/framework/object/object.h"
 
-namespace Pilot
+namespace Piccolo
 {
-    PhysicsActor::PhysicsActor(GObject* gobject, const Transform& global_transform) :
+    PhysicsActor::PhysicsActor(std::weak_ptr<GObject> gobject, const Transform& global_transform) :
         m_parent_object {gobject}, m_global_transform {global_transform}
     {
         m_friction = 0.8f;
@@ -25,7 +25,7 @@ namespace Pilot
             {
                 Box* box_shape_geom = new Box;
 
-                (*box_shape_geom) = *static_cast<Box*>(shape.m_geometry.operator->());
+                (*box_shape_geom) = *static_cast<Box*>(shape.m_geometry.getPtr());
 
                 shape.m_geometry.getPtrReference() = box_shape_geom;
                 shape.m_type                       = RigidBodyShapeType::box;
@@ -143,4 +143,4 @@ namespace Pilot
         }
     }
 
-} // namespace Pilot
+} // namespace Piccolo

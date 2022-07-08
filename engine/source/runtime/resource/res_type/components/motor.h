@@ -4,7 +4,7 @@
 #include "runtime/core/meta/reflection/reflection.h"
 #include "runtime/resource/res_type/data/basic_shape.h"
 
-namespace Pilot
+namespace Piccolo
 {
     enum class ControllerType : unsigned char
     {
@@ -33,29 +33,22 @@ namespace Pilot
         Capsule m_capsule_shape;
     };
 
-    REFLECTION_TYPE(MotorRes)
-    CLASS(MotorRes, WhiteListFields)
+    REFLECTION_TYPE(MotorComponentRes)
+    CLASS(MotorComponentRes, Fields)
     {
-        REFLECTION_BODY(MotorRes);
+        REFLECTION_BODY(MotorComponentRes);
 
     public:
-        ~MotorRes() { PILOT_REFLECTION_DELETE(m_controller_config); }
+        MotorComponentRes() = default;
+        ~MotorComponentRes();
 
-        ControllerType m_controller_type {ControllerType::none};
+        float m_move_speed { 0.f};
+        float m_jump_height {0.f};
+        float m_max_move_speed_ratio { 0.f};
+        float m_max_sprint_speed_ratio { 0.f};
+        float m_move_acceleration {0.f};
+        float m_sprint_acceleration { 0.f};
 
-        META(Enable)
-        float m_move_speed;
-        META(Enable)
-        float m_jump_height;
-        META(Enable)
-        float m_max_move_speed_ratio;
-        META(Enable)
-        float m_max_sprint_speed_ratio;
-        META(Enable)
-        float m_move_acceleration;
-        META(Enable)
-        float m_sprint_acceleration;
-        META(Enable)
         Reflection::ReflectionPtr<ControllerConfig> m_controller_config;
     };
-} // namespace Pilot
+} // namespace Piccolo

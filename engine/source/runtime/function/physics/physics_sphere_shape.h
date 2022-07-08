@@ -2,12 +2,12 @@
 
 #include "runtime/function/physics/physics_shape_base.h"
 
-namespace Pilot
+namespace Piccolo
 {
     class PhysicsSphereShape : public PhysicsShapeBase
     {
     public:
-        PhysicsSphereShape(Transform* transform, float radius) : PhysicsShapeBase(transform), m_radius(radius)
+        PhysicsSphereShape(const Transform& transform, float radius) : PhysicsShapeBase(transform), m_radius(radius)
         {
             // PhysicsShapeBase::PhysicsShapeBase(transform);
         }
@@ -18,4 +18,4 @@ namespace Pilot
     private:
         float m_radius {0.f};
     };
-} // namespace Pilot
+} // namespace Piccolo

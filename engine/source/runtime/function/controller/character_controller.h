@@ -1,11 +1,11 @@
 #pragma once
 
 #include "runtime/core/math/vector3.h"
+#include "runtime/resource/res_type/components/rigid_body.h"
 #include "runtime/resource/res_type/data/basic_shape.h"
 
-namespace Pilot
+namespace Piccolo
 {
-    class GObject;
     enum SweepPass
     {
         SWEEP_PASS_UP,
@@ -17,7 +17,7 @@ namespace Pilot
     class Controller
     {
     public:
-        virtual ~Controller();
+        virtual ~Controller() = default;
 
         virtual Vector3 move(const Vector3& current_position, const Vector3& displacement) = 0;
     };
@@ -25,12 +25,13 @@ namespace Pilot
     class CharacterController : public Controller
     {
     public:
-        CharacterController(const Capsule& capsule) : m_capsule(capsule) {}
-        ~CharacterController();
+        CharacterController(const Capsule& capsule);
+        ~CharacterController() = default;
 
         Vector3 move(const Vector3& current_position, const Vector3& displacement) override;
 
     private:
-        Capsule m_capsule;
+        Capsule        m_capsule;
+        RigidBodyShape m_rigidbody_shape;
     };
-} // namespace Pilot
+} // namespace Piccolo

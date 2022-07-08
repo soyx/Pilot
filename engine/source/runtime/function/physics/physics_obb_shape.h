@@ -4,12 +4,12 @@
 
 #include "runtime/core/math/vector3.h"
 
-namespace Pilot
+namespace Piccolo
 {
     class PhysicsOBBShape : public PhysicsShapeBase
     {
     public:
-        PhysicsOBBShape(Transform* transform, const Vector3 half_dimensions) :
+        PhysicsOBBShape(const Transform& transform, const Vector3 half_dimensions) :
             PhysicsShapeBase(transform), m_half_dimensions(half_dimensions)
         {}
         ~PhysicsOBBShape() override {}
@@ -19,4 +19,4 @@ namespace Pilot
     private:
         Vector3 m_half_dimensions;
     };
-} // namespace Pilot
+} // namespace Piccolo
