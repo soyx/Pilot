@@ -157,16 +157,6 @@ namespace Piccolo
         gbuffer_albedo_attachment_description.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
         gbuffer_albedo_attachment_description.finalLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-        VkAttachmentDescription& sample_buffer_attachment_description = attachments[_main_camera_pass_sample_buffer];
-        sample_buffer_attachment_description.format =
-            _framebuffer.attachments[_main_camera_pass_sample_buffer].format;
-        sample_buffer_attachment_description.samples = VK_SAMPLE_COUNT_1_BIT;
-        sample_buffer_attachment_description.loadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        sample_buffer_attachment_description.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        sample_buffer_attachment_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        sample_buffer_attachment_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        sample_buffer_attachment_description.initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED;
-        sample_buffer_attachment_description.finalLayout    = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkAttachmentDescription& backup_odd_color_attachment_description =
             attachments[_main_camera_pass_backup_buffer_odd];
@@ -2299,9 +2289,6 @@ namespace Piccolo
 
         m_vulkan_rhi->m_vk_cmd_next_subpass(m_vulkan_rhi->m_current_command_buffer, VK_SUBPASS_CONTENTS_INLINE);
 
-        screen_space_antialiasing_pass.draw();
-
-        m_p_vulkan_context->_vkCmdNextSubpass(m_command_info._current_command_buffer, VK_SUBPASS_CONTENTS_INLINE);
 
         VkClearAttachment clear_attachments[1];
         clear_attachments[0].aspectMask                  = VK_IMAGE_ASPECT_COLOR_BIT;
