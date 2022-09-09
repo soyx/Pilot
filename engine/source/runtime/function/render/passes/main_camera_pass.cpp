@@ -2,6 +2,7 @@
 #include "runtime/function/render/render_helper.h"
 #include "runtime/function/render/render_mesh.h"
 #include "runtime/function/render/render_resource.h"
+#include "runtime/function/render/glm_wrapper.h"
 
 #include "runtime/function/render/rhi/vulkan/vulkan_rhi.h"
 #include "runtime/function/render/rhi/vulkan/vulkan_util.h"
@@ -2420,9 +2421,9 @@ namespace Piccolo
     {
         struct MeshNode
         {
-            glm::mat4 model_matrix;
-            glm::mat4 joint_matrices[m_mesh_vertex_blending_max_joint_count];
-            bool      enable_vertex_blending;
+            const Matrix4x4* model_matrix {nullptr};
+            const Matrix4x4* joint_matrices {nullptr};
+            uint32_t         joint_count {0};
         };
 
         std::map<VulkanPBRMaterial*, std::map<VulkanMesh*, std::vector<MeshNode>>> main_camera_mesh_drawcall_batch;
@@ -2434,14 +2435,11 @@ namespace Piccolo
             auto& mesh_nodes     = mesh_instanced[node.ref_mesh];
 
             MeshNode temp;
-            temp.model_matrix           = node.model_matrix;
-            temp.enable_vertex_blending = node.enable_vertex_blending;
+            temp.model_matrix = node.model_matrix;
             if (node.enable_vertex_blending)
             {
-                for (uint32_t i = 0; i < m_mesh_vertex_blending_max_joint_count; ++i)
-                {
-                    temp.joint_matrices[i] = node.joint_matrices[i];
-                }
+                temp.joint_matrices = node.joint_matrices;
+                temp.joint_count = node.joint_count;
             }
 
             mesh_nodes.push_back(temp);
@@ -2565,9 +2563,9 @@ namespace Piccolo
                         for (uint32_t i = 0; i < current_instance_count; ++i)
                         {
                             perdrawcall_storage_buffer_object.mesh_instances[i].model_matrix =
-                                mesh_nodes[drawcall_max_instance_count * drawcall_index + i].model_matrix;
+                                GLMUtil::fromMat4x4(*mesh_nodes[drawcall_max_instance_count * drawcall_index + i].model_matrix);
                             perdrawcall_storage_buffer_object.mesh_instances[i].enable_vertex_blending =
-                                mesh_nodes[drawcall_max_instance_count * drawcall_index + i].enable_vertex_blending ?
+                                mesh_nodes[drawcall_max_instance_count * drawcall_index + i].joint_matrices ?
                                     1.0 :
                                     -1.0;
                         }
@@ -2577,7 +2575,7 @@ namespace Piccolo
                         bool     least_one_enable_vertex_blending = true;
                         for (uint32_t i = 0; i < current_instance_count; ++i)
                         {
-                            if (!mesh_nodes[drawcall_max_instance_count * drawcall_index + i].enable_vertex_blending)
+                            if (!mesh_nodes[drawcall_max_instance_count * drawcall_index + i].joint_matrices)
                             {
                                 least_one_enable_vertex_blending = false;
                                 break;
@@ -2608,14 +2606,14 @@ namespace Piccolo
                                         per_drawcall_vertex_blending_dynamic_offset));
                             for (uint32_t i = 0; i < current_instance_count; ++i)
                             {
-                                if (mesh_nodes[drawcall_max_instance_count * drawcall_index + i].enable_vertex_blending)
+                                if (mesh_nodes[drawcall_max_instance_count * drawcall_index + i].joint_matrices)
                                 {
-                                    for (uint32_t j = 0; j < m_mesh_vertex_blending_max_joint_count; ++j)
+                                    for (uint32_t j = 0; j < mesh_nodes[drawcall_max_instance_count * drawcall_index + i].joint_count; ++j)
                                     {
                                         per_drawcall_vertex_blending_storage_buffer_object
                                             .joint_matrices[m_mesh_vertex_blending_max_joint_count * i + j] =
-                                            mesh_nodes[drawcall_max_instance_count * drawcall_index + i]
-                                                .joint_matrices[j];
+                                            GLMUtil::fromMat4x4(mesh_nodes[drawcall_max_instance_count * drawcall_index + i]
+                                                .joint_matrices[j]);
                                     }
                                 }
                             }
@@ -2704,9 +2702,9 @@ namespace Piccolo
     {
         struct MeshNode
         {
-            glm::mat4 model_matrix;
-            glm::mat4 joint_matrices[m_mesh_vertex_blending_max_joint_count];
-            bool      enable_vertex_blending;
+            const Matrix4x4* model_matrix {nullptr};
+            const Matrix4x4* joint_matrices {nullptr};
+            uint32_t         joint_count {0};
         };
 
         std::map<VulkanPBRMaterial*, std::map<VulkanMesh*, std::vector<MeshNode>>> main_camera_mesh_drawcall_batch;
@@ -2718,14 +2716,11 @@ namespace Piccolo
             auto& mesh_nodes     = mesh_instanced[node.ref_mesh];
 
             MeshNode temp;
-            temp.model_matrix           = node.model_matrix;
-            temp.enable_vertex_blending = node.enable_vertex_blending;
+            temp.model_matrix = node.model_matrix;
             if (node.enable_vertex_blending)
             {
-                for (uint32_t i = 0; i < m_mesh_vertex_blending_max_joint_count; ++i)
-                {
-                    temp.joint_matrices[i] = node.joint_matrices[i];
-                }
+                temp.joint_matrices = node.joint_matrices;
+                temp.joint_count = node.joint_count;
             }
 
             mesh_nodes.push_back(temp);
@@ -2849,9 +2844,9 @@ namespace Piccolo
                         for (uint32_t i = 0; i < current_instance_count; ++i)
                         {
                             perdrawcall_storage_buffer_object.mesh_instances[i].model_matrix =
-                                mesh_nodes[drawcall_max_instance_count * drawcall_index + i].model_matrix;
+                                GLMUtil::fromMat4x4(*mesh_nodes[drawcall_max_instance_count * drawcall_index + i].model_matrix);
                             perdrawcall_storage_buffer_object.mesh_instances[i].enable_vertex_blending =
-                                mesh_nodes[drawcall_max_instance_count * drawcall_index + i].enable_vertex_blending ?
+                                mesh_nodes[drawcall_max_instance_count * drawcall_index + i].joint_matrices ?
                                     1.0 :
                                     -1.0;
                         }
@@ -2861,7 +2856,7 @@ namespace Piccolo
                         bool     least_one_enable_vertex_blending = true;
                         for (uint32_t i = 0; i < current_instance_count; ++i)
                         {
-                            if (!mesh_nodes[drawcall_max_instance_count * drawcall_index + i].enable_vertex_blending)
+                            if (!mesh_nodes[drawcall_max_instance_count * drawcall_index + i].joint_matrices)
                             {
                                 least_one_enable_vertex_blending = false;
                                 break;
@@ -2892,14 +2887,14 @@ namespace Piccolo
                                         per_drawcall_vertex_blending_dynamic_offset));
                             for (uint32_t i = 0; i < current_instance_count; ++i)
                             {
-                                if (mesh_nodes[drawcall_max_instance_count * drawcall_index + i].enable_vertex_blending)
+                                if (mesh_nodes[drawcall_max_instance_count * drawcall_index + i].joint_matrices)
                                 {
-                                    for (uint32_t j = 0; j < m_mesh_vertex_blending_max_joint_count; ++j)
+                                    for (uint32_t j = 0; j < mesh_nodes[drawcall_max_instance_count * drawcall_index + i].joint_count; ++j)
                                     {
                                         per_drawcall_vertex_blending_storage_buffer_object
                                             .joint_matrices[m_mesh_vertex_blending_max_joint_count * i + j] =
-                                            mesh_nodes[drawcall_max_instance_count * drawcall_index + i]
-                                                .joint_matrices[j];
+                                            GLMUtil::fromMat4x4(mesh_nodes[drawcall_max_instance_count * drawcall_index + i]
+                                                .joint_matrices[j]);
                                     }
                                 }
                             }
